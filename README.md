@@ -84,12 +84,11 @@ Name of the file in the target directory used to override any of above settings 
 
 ### Create a generic options file for your first backup-set
 We want to change a few parameters for our backup set: with the exception of a specific host,
-we want to keep only 7 in-line snapshots of our servers. Since we also plan to run daily
-backups, we prefer that our snapshot directories have the base-name "day" instead of the
-default "snapshot". The other options are fine with us so we don't need to change them.
+we want to keep only 7 in-line snapshots of our servers.  The other options are fine with us
+so we don't need to change them.
+
 Let's create **/srv/backupSet1.m8backup** with the following content:
 
-	SNAPSNAME="day"
 	SNAPSHOTS=7
 
 ### Create a directory for each server that we want to backup

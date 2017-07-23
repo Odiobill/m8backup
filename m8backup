@@ -5,7 +5,7 @@
 
 PROGNAME="m8backup"
 AUTHNAME="Davide Lucchesi <davide@lucchesi.nl>"
-SITEADDR="https://lucchesi.nl"
+SITEADDR="https://github.com/Odiobill/m8backup"
 LOCKFILE="/var/run/$PROGNAME.lock"
 TRGTNAME=""
 
@@ -205,11 +205,6 @@ ls $TARGETDIR | while read i; do
 		OVERRIDER=$OLD_OVERRIDER
 		LOCALPATH=""
 	fi
-
-
-
-
-
 done
 
 # done, cleaning up
