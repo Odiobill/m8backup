@@ -12,11 +12,12 @@ m8backup is a pretty simple wrapper around rsync that should do the following:
 
 * It's invoked by hand or, most probably, with a cron entry.
 * You provide a target directory to it as a command line parameter (I.E.: m8backup */srv/backupSet1*).
-* m8backup will look if a configuration file is found that "backup set" (I.E.: */srv/backupSet1.m8backup*). If found, it will override its default config settings for that specific backup set.
+* m8backup will look if a configuration file is found for that "backup set" (I.E.: */srv/backupSet1.m8backup*). If found, it will override its default config settings for that specific backup set.
 * The target directory will contain a subdirectory for each server that we need to backup (I.E.: */srv/backupSet1/host1.example.com*).
-* m8backup will look if a configuration file is found that server (I.E.: */srv/backupSet1/host1.example.com/server.conf*).
-* If found, it will override its default config settings for that specific host.
-* m8backup will use *rsync*, that will open an ssh connection to the target host, using key-based authentication. The public key related to the root user of the backup server must be imported into the */root/.ssh/authorized_keys* file.
+* m8backup will look if a configuration file is found for that target (I.E.: */srv/backupSet1/host1.example.com/server.conf*).
+* If found, it will override its default config settings for that specific target.
+* m8backup will use *rsync*, that will open an ssh connection to the target host (using key-based authentication) or local path.
+The public key related to the root user of the backup server must be imported into the */root/.ssh/authorized_keys* file of any remote host.
 
 Remote hosts needs to allow connection as *root* from the SSH key of the central
 server. To avoid exposing your data to unwanted audience, you should restrict
