@@ -6,9 +6,9 @@
 PROGNAME="m8backup"
 AUTHNAME="Davide Lucchesi <davide@lucchesi.nl>"
 SITEADDR="https://github.com/Odiobill/m8backup"
-LOCKFILE="/var/run/$PROGNAME.lock"
-TRGTNAME=""
+EDITDATE="2017-07-30"
 
+# default parameters that can be overridden
 EXCLUDING=""
 SNAPSHOTS=30
 SNAPSNAME="snapshot"
@@ -16,7 +16,12 @@ RSYNCPATH="/usr/bin/rsync"
 RSYNCOPTS="-uae ssh --delete --numeric-ids"
 OVERRIDER="server.conf"
 LOCALPATH=""
+WSTARTCMD=""
+MSTARTCMD=""
+YSTARTCMD=""
 
+LOCKFILE="/var/run/$PROGNAME.lock"
+TRGTNAME=""
 
 help() {
 	printf '%s - Dependency free backup server with data de-duplication using rsync and ssh\n' "$PROGNAME"
@@ -25,7 +30,6 @@ help() {
 	echo ""
 	echo "Usage:"
 	printf '\t%s -h|--help\n' "$0"
-	printf '\t%s -l|--license\n' "$0"
 	printf '\t%s -o|--only <path> <target>\n' "$0"
 	printf '\t%s <path>\n' "$0"
 	echo ""
@@ -41,26 +45,17 @@ help() {
 	printf 'RSYNCPATH="%s"\t# path to the rsync executable\n' "$RSYNCPATH"
 	printf 'RSYNCOPTS="%s"\t# command line arguments for rsync\n' "$RSYNCOPTS"
 	printf 'OVERRIDER="%s"\t# name of the file in the target directory used to override any of above settings for that entry\n' "$OVERRIDER"
+	printf 'WSTARTCMD="%s"\t# external command to be executed if running on Monday\n' "$WSTARTCMD"
+	printf 'MSTARTCMD="%s"\t# external command to be executed if running on the first day of the month\n' "$MSTARTCMD"
+	printf 'YSTARTCMD="%s"\t# external command to be executed if running on the first day of the year\n' "$YSTARTCMD"
 	echo ""
+	echo "The *STARTCMD commands will receive the path of the latest snapshot as single command line argument."
 	echo "To take snapshots of a local directory instead of a remote host, provide its path in an additional LOCALPATH parameter of the OVERRIDER file."
-}
-
-license() {
-cat <<EOF
-The MIT License (MIT)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-EOF
 }
 
 usage() {
 	echo "Usage:"
 	printf '\t%s -h|--help\n' "$0"
-	printf '\t%s -l|--license\n' "$0"
 	printf '\t%s -o|--only <path> <target>\n' "$0"
 	printf '\t%s <path>\n' "$0"
 	echo ""
@@ -71,11 +66,6 @@ if [ $# -ge 1 ]; then
 	case $1 in
 		-h|--help)
 		help
-		exit 0
-		;;
-
-		-l|--license)
-		license
 		exit 0
 		;;
 
@@ -97,7 +87,7 @@ if [ $# -ge 1 ]; then
 	if [ -d $TRGTPATH ]; then
 		DESTNAME=`basename "$TRGTPATH"`
 		LOCKFILE="$LOCKFILE.$DESTNAME"
-		TARGETDIR=`echo "$TRGTPATH" | sed "s/\/$//"`
+		TARGETDIR=${TRGTPATH%/}
 		if [ -f "$TARGETDIR.$PROGNAME" ]; then
 			. "$TARGETDIR.$PROGNAME"
 		fi
@@ -131,6 +121,10 @@ else
 EOF
 fi
 
+DWK=`date "+%u"`
+DAY=`date "+%d"`
+MNT=`date "+%m"`
+
 DESTSNAPS=$SNAPSHOTS
 # taking snapshots
 ls $TARGETDIR | while read i; do
@@ -154,6 +148,9 @@ ls $TARGETDIR | while read i; do
 		OLD_RSYNCPATH=$RSYNCPATH
 		OLD_RSYNCOPTS=$RSYNCOPTS
 		OLD_OVERRIDER=$OVERRIDER
+		OLD_WSTARTCMD=$WSTARTCMD
+		OLD_MSTARTCMD=$MSTARTCMD
+		OLD_YSTARTCMD=$YSTARTCMD
 		if [ -f "$DSTPATH/$OVERRIDER" ]; then
 			. $DSTPATH/$OVERRIDER
 		fi
@@ -183,15 +180,41 @@ ls $TARGETDIR | while read i; do
 				else
 					EXCLUDE="--exclude-from=$LOCKFILE"
 				fi
+				GO=0
 				if [ ! -z "$LOCALPATH" ]; then
 					if [ ! -d "$LOCALPATH" ]; then
 						echo "Invalid path \"$LOCALPATH\" for target \"$SRV\"."
 					else
-						$RSYNCPATH $RSYNCOPTS --link-dest=../$SNAPSNAME-1 $EXCLUDE $SRCPATH $DSTPATH/$SNAPSNAME-0/
+						GO=1
 					fi
 				else
-					$RSYNCPATH $RSYNCOPTS --link-dest=../$SNAPSNAME-1 $EXCLUDE $SRCPATH $DSTPATH/$SNAPSNAME-0/
+					GO=1
 				fi
+				if [ $GO -eq 1 ]; then
+					$RSYNCPATH $RSYNCOPTS --link-dest=../$SNAPSNAME-1 $EXCLUDE $SRCPATH $DSTPATH/$SNAPSNAME-0/
+					if [ $? -ne 0 ]; then
+						echo "$SRV - rsync exit code $?"
+					fi
+					if [ "$DWK" = "7" ]; then	# weekly script
+						if [ ! -z $WSTARTCMD ]; then
+							eval "$WSTARTCMD $DSTPATH/$SNAPSNAME-0"
+						fi
+					fi
+					if [ "$DAY" = "01" ]; then	# monthly script
+						if [ ! -z $WSTARTCMD ]; then
+							eval "$MSTARTCMD $DSTPATH/$SNAPSNAME-0"
+						fi
+					fi
+					if [ "$MNT" = "01" ]; then
+						if [ "$DAY" = "01" ]; then	# yearly script
+							if [ ! -z $WSTARTCMD ]; then
+								eval "YWSTARTCMD $DSTPATH/$SNAPSNAME-0"
+							fi
+						fi
+					fi
+				fi
+			else
+				echo "Can't open $RSYNCPATH"
 			fi
 		else
 			echo "Skipping target $SRV..."
@@ -203,6 +226,9 @@ ls $TARGETDIR | while read i; do
 		RSYNCPATH=$OLD_RSYNCPATH
 		RSYNCOPTS=$OLD_RSYNCOPTS
 		OVERRIDER=$OLD_OVERRIDER
+		WSTARTCMD=$OLD_WSTARTCMD
+		MSTARTCMD=$OLD_MSTARTCMD
+		YSTARTCMD=$OLD_YSTARTCMD
 		LOCALPATH=""
 	fi
 done

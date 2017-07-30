@@ -16,7 +16,7 @@ m8backup is a pretty simple wrapper around rsync that should do the following:
 * The target directory will contain a subdirectory for each server that we need to backup (I.E.: */srv/backupSet1/host1.example.com*).
 * m8backup will look if a configuration file is found that server (I.E.: */srv/backupSet1/host1.example.com/server.conf*).
 * If found, it will override its default config settings for that specific host.
-* m8backup will use *rsync*, that will open an ssh connection to the target host, using key-based authentication. The public key related to the root user of the backup server must be imported into the */root/.ssh/authorized*keys file*.
+* m8backup will use *rsync*, that will open an ssh connection to the target host, using key-based authentication. The public key related to the root user of the backup server must be imported into the */root/.ssh/authorized_keys* file.
 
 Remote hosts needs to allow connection as *root* from the SSH key of the central
 server. To avoid exposing your data to unwanted audience, you should restrict
@@ -25,7 +25,6 @@ server. To avoid exposing your data to unwanted audience, you should restrict
 ## Usage
 	Usage:
 		./m8backup -h|--help
-		./m8backup -l|--license
 		./m8backup -o|--only <path> <target>
 		./m8backup <path>
 
@@ -33,7 +32,7 @@ server. To avoid exposing your data to unwanted audience, you should restrict
 Let's see how easy is to start taking your backups.
 
 ### sshd configuration (client side)
-Edit the SSH server configuration file, usually */etc/ssh/sshd*config*, and
+Edit the SSH server configuration file, usually */etc/ssh/sshd_config*, and
 configure it for accepting *root connections* only for a limited amount of tasks:
 
 	PermitRootLogin forced-commands-only
@@ -81,6 +80,18 @@ Command line arguments for rsync. Default: "-uae ssh --delete --numeric-ids".
 
 #### OVERRIDER
 Name of the file in the target directory used to override any of above settings for that entry. Default: "server.conf".
+
+#### WSTARTCMD
+Path to an external command (usually a shell script) that will be executed if *m8backup* is running on Monday.
+The WSTARTCMD command will receive the path of the latest snapshot as single parameter.
+
+#### MSTARTCMD
+Path to an external command (usually a shell script) that will be executed if *m8backup* is running on the first day of the month.
+The MSTARTCMD command will receive the path of the latest snapshot as single parameter.
+
+#### YSTARTCMD
+Path to an external command (usually a shell script) that will be executed if *m8backup* is running on the first day of the year.
+The YSTARTCMD command will receive the path of the latest snapshot as single parameter.
 
 ### Create a generic options file for your first backup-set
 We want to change a few parameters for our backup set: with the exception of a specific host,
@@ -134,7 +145,7 @@ If we want to take a first dump of this new host only, we can use the *--only* o
 	# ./m8backup --only /srv/backupSet1 host4.example.com
 
 ### Exclude a host from the backup list
-If you want to temporally avoid to backup one of your host, just edit its *override file*
+If you want to temporally avoid to backup one of your hosts, just edit its *override file*
 and add the following parameter:
 
 	EXECUTEIT=0
