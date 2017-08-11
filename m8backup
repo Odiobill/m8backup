@@ -6,7 +6,7 @@
 PROGNAME="m8backup"
 AUTHNAME="Davide Lucchesi <davide@lucchesi.nl>"
 SITEADDR="https://github.com/Odiobill/m8backup"
-EDITDATE="2017-07-30"
+EDITDATE="2017-08-11"
 
 # default parameters that can be overridden
 EXCLUDING=""
