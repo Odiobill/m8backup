@@ -19,6 +19,7 @@ LOCALPATH=""
 WSTARTCMD=""
 MSTARTCMD=""
 YSTARTCMD=""
+LATESTCMD=""
 
 LOCKFILE="/var/run/$PROGNAME.lock"
 TRGTNAME=""
@@ -48,6 +49,7 @@ help() {
 	printf 'WSTARTCMD="%s"\t# external command to be executed if running on Monday\n' "$WSTARTCMD"
 	printf 'MSTARTCMD="%s"\t# external command to be executed if running on the first day of the month\n' "$MSTARTCMD"
 	printf 'YSTARTCMD="%s"\t# external command to be executed if running on the first day of the year\n' "$YSTARTCMD"
+	printf 'LATESTCMD="%s"\t# external command to be executed before exiting\n' "$LATESTCMD"
 	echo ""
 	echo "The *STARTCMD commands will receive the path of the latest snapshot as single command line argument."
 	echo "To take snapshots of a local directory instead of a remote host, provide its path in an additional LOCALPATH parameter of the OVERRIDER file."
@@ -151,6 +153,7 @@ ls $TARGETDIR | while read i; do
 		OLD_WSTARTCMD=$WSTARTCMD
 		OLD_MSTARTCMD=$MSTARTCMD
 		OLD_YSTARTCMD=$YSTARTCMD
+		OLD_LATESTCMD=$LATESTCMD
 		if [ -f "$DSTPATH/$OVERRIDER" ]; then
 			. $DSTPATH/$OVERRIDER
 		fi
@@ -229,9 +232,14 @@ ls $TARGETDIR | while read i; do
 		WSTARTCMD=$OLD_WSTARTCMD
 		MSTARTCMD=$OLD_MSTARTCMD
 		YSTARTCMD=$OLD_YSTARTCMD
+		LATESTCMD=$OLD_LATESTCMD
 		LOCALPATH=""
 	fi
 done
+
+if [ ! -z $LATESTCMD ]; then
+	eval "$LATESTCMD $TARGETDIR"
+fi
 
 # done, cleaning up
 rm "$LOCKFILE"

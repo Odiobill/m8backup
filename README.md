@@ -94,6 +94,10 @@ The MSTARTCMD command will receive the path of the latest snapshot as single par
 Path to an external command (usually a shell script) that will be executed if *m8backup* is running on the first day of the year.
 The YSTARTCMD command will receive the path of the latest snapshot as single parameter.
 
+#### LATESTCMD
+Path to an external command (usually a shell script) that will be executed after *m8backup* is done and about to leave.
+The LATESTCMD command will receive *m8backup*'s <path> as single parameter.
+
 ### Create a generic options file for your first backup-set
 We want to change a few parameters for our backup set: with the exception of a specific host,
 we want to keep only 7 in-line snapshots of our servers.  The other options are fine with us
